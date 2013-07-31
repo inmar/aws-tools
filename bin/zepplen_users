@@ -41,7 +41,7 @@ if(ZepplenAWS::Env[:dynamo_table] == nil)
 end
 
 if(ZepplenAWS::Env[:local_users] == nil)
-	ZepplenAWS::Env[:local_users] = '/etc/zeppeln_aws/local_users.yaml'
+	ZepplenAWS::Env[:local_users] = '/etc/zepplen_aws/local_users.yaml'
 end
 
 server_users = ZepplenAWS::ServerLocalUsers.new()

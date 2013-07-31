@@ -162,15 +162,25 @@ module ZepplenAWS
 			@table.items.where(:type => 'USER').where(:state => 'ACTIVE').each do |row|
 				user = ServerUser.new(row.attributes[:user_name], @dynamo_table, row, @metadata, @server_users)
 				@tags.each_pair do |instance_tag, instance_value|
-					if(user.access_tags.has_key?(instance_tag) && user.access_tags[instance_tag].has_key?(instance_value))
-						add_user(user, instance_tag, instance_value, users)
-					else
-						remove_user(user.user_name, users)
+					if(user.access_tags.has_key?(instance_tag))
+						user.access_tags.each_pair do |access_match, access_data|
+							access_data.each_pair do |instance_match, instance_data|
+								access_regex = Regexp.new(instance_match)
+								if(access_regex.match(instance_value))
+									add_user(user, instance_tag, instance_value, users)
+								else
+									remove_user(user.user_name, users)
+								end
+							end
+						end
 					end
 				end
 			end
 			@table.items.where(:type => 'USER').where(:state => 'INACTIVE').each do |row|
 				remove_user(row.attributes[:user_name])
+			end
+			users[:local_users].each_pair do |user_name, user_data|
+				users[:local_remove_users].delete(user_name)
 			end
 			save_to_file(users)
 			return users
