@@ -165,7 +165,7 @@ module ZepplenAWS
 					if(user.access_tags.has_key?(instance_tag))
 						user.access_tags.each_pair do |access_match, access_data|
 							access_data.each_pair do |instance_match, instance_data|
-								access_regex = Regexp.new("^#{instance_match}")
+								access_regex = Regexp.new("^#{instance_match}$")
 								if(access_regex.match(instance_value))
 									add_user(user, instance_tag, instance_value, users)
 								else
