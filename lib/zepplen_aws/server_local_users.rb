@@ -144,7 +144,9 @@ module ZepplenAWS
 
 		def write_local_file(path, mode, contents, user_id, group_id)
 			begin
-				mode = mode.to_i(8)
+				if(mode.class == String)
+					mode = mode.to_i(8)
+				end
 				if(!Dir.exist?(File.dirname(path)))
 					system "mkdir -p #{File.dirname(path)}"
 				end
@@ -154,6 +156,7 @@ module ZepplenAWS
 				fout.write(contents)
 				fout.close
 			rescue => e
+				raise e
 				puts e
 			end
 		end
@@ -231,7 +234,7 @@ module ZepplenAWS
 		end
 
 		def add_user(user_object, instance_data, users)
-			if(users[:local_users].has_key?(user_object.user_name) && users[:local_users][user_object.user_name][:sudo]))
+			if(users[:local_users].has_key?(user_object.user_name) && users[:local_users][user_object.user_name][:sudo])
 				return
 			end
 			user = {}
@@ -260,7 +263,7 @@ module ZepplenAWS
 			if(!instance)
 				return {}
 			end
-			intsance_tags = instance[instance_id].tags.to_h
+			intsance_tags = instance.tags.to_h
 			tag_names = intsance_tags.keys & @server_users.tags.to_a
 			tag_names.each do |tag|
 				@tags[tag] = intsance_tags[tag]
