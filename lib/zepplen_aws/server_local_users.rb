@@ -161,19 +161,11 @@ module ZepplenAWS
 		def load_users_from_dynamo(users)
 			@table.items.where(:type => 'USER').where(:state => 'ACTIVE').each do |row|
 				user = ServerUser.new(row.attributes[:user_name], @dynamo_table, row, @metadata, @server_users)
-				@tags.each_pair do |instance_tag, instance_value|
-					if(user.access_tags.has_key?(instance_tag))
-						user.access_tags.each_pair do |access_match, access_data|
-							access_data.each_pair do |instance_match, instance_data|
-								access_regex = Regexp.new("^#{instance_match}$")
-								if(access_regex.match(instance_value))
-									add_user(user, instance_tag, instance_value, users)
-								else
-									remove_user(user.user_name, users)
-								end
-							end
-						end
-					end
+				instance_data = user.has_access?(@tags)
+				if(instance_data)
+					add_user(user, instance_data, users)
+				else
+					remove_user(user.user_name, users)
 				end
 			end
 			@table.items.where(:type => 'USER').where(:state => 'INACTIVE').each do |row|
@@ -238,7 +230,10 @@ module ZepplenAWS
 			users[:local_remove_users] << user_name
 		end
 
-		def add_user(user_object, tag_name, tag_value, users)
+		def add_user(user_object, instance_data, users)
+			if(users[:local_users].has_key?(user_object.user_name) && users[:local_users][user_object.user_name][:sudo]))
+				return
+			end
 			user = {}
 			user[:user_name] = user_object.user_name
 			user[:full_name] = user_object.full_name
@@ -247,7 +242,7 @@ module ZepplenAWS
 			user[:public_key_expire] = user_object.public_key_expire
 			user[:user_id] = user_object.user_id.to_i
 			user[:identity] = user_object.identity.to_i
-			user[:sudo] = user_object.access_tags[tag_name][tag_value]['sudo']
+			user[:sudo] = instance_data['sudo']
 			user[:files] = user_object.files
 			users[:local_users][user_object.user_name] = user
 		end
@@ -255,7 +250,17 @@ module ZepplenAWS
 		def load_instance_tags()
 			instance_id = @instance_data['instance-id']
 			ec2 = AWS::EC2.new()
-			intsance_tags = ec2.instances[instance_id].tags.to_h
+			instance = nil
+			ec2.all.each do |e|
+				if(e.instances[instance_id].exists?)
+					instance = e.instances[instance_id]
+					break
+				end
+			end
+			if(!instance)
+				return {}
+			end
+			intsance_tags = instance[instance_id].tags.to_h
 			tag_names = intsance_tags.keys & @server_users.tags.to_a
 			tag_names.each do |tag|
 				@tags[tag] = intsance_tags[tag]

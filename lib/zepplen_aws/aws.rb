@@ -28,6 +28,7 @@ module ZepplenAWS
 		autoload :Route53, 'zepplen_aws/aws/route53'
 		autoload :DynamoDB, 'zepplen_aws/aws/dynamo_db'
 		autoload :InstanceData, 'zepplen_aws/aws/instance_data'
+		autoload :STS, 'zepplen_aws/aws/sts'
 
 		# Sets the AWS Configuration from the Env class.
 		def self.init!()

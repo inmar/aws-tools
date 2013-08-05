@@ -86,6 +86,51 @@ module ZepplenAWS
 			return @user_data['files']
 		end
 
+		# Retrieve file from S3
+		#
+		# @return [string] File Contents
+		def get_file(file_name)
+			if(!@user_data['files'].has_key?(file_name))
+				raise "Files does not exist: #{file_name}"
+			end
+			s3 = AWS::S3.new()
+			bucket = s3.buckets[@server_users.user_file_bucket]
+			return bucket.objects[@user_data['files'][file_name]['s3_path']].read()
+		end
+
+		def get_accessable_instances()
+			ec2 = AWS::EC2.new()
+			::AWS.memoize do
+				ec2.all.each do |e|
+					e.instances.each do |instance|
+						if(has_access?(instance.tags))
+							puts "Access".green
+							puts instance.id
+							puts instance.tags['Name']
+						else
+							puts "No Access".yellow
+						end
+					end
+				end
+			end
+		end
+
+		def has_access?(tags)
+			tags.each_pair do |instance_tag, instance_value|
+				if(access_tags.has_key?(instance_tag))
+					access_tags.each_pair do |access_match, access_data|
+						access_data.each_pair do |instance_match, instance_data|
+							access_regex = Regexp.new("^#{instance_match}$")
+							if(access_regex.match(instance_value))
+								return instance_data
+							end
+						end
+					end
+				end
+			end
+			return false
+		end
+
 		# Remove file from user's profile
 		#
 		# Note: the file will be removed from S3 Before object is saved!
