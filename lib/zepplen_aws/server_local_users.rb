@@ -261,7 +261,7 @@ module ZepplenAWS
 				end
 			end
 			if(!instance)
-				return {}
+				raise "Cannot Find Instance"
 			end
 			intsance_tags = instance.tags.to_h
 			tag_names = intsance_tags.keys & @server_users.tags.to_a
