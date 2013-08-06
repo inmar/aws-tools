@@ -192,6 +192,23 @@ if(options[:configure])
 	end
 
 	puts
+	if(server_users.assumable_roles)
+		default = server_users.assumable_roles.join(' ')
+	else
+		default = nil
+	end
+	print "Cross Account Access (Role Arn's seperated by spaces) [#{default}]: "
+	assumable_roles = gets.chomp
+	if(assumable_roles == '')
+		configs[:assumable_roles] = default.split(' ')
+	else
+		configs[:assumable_roles] = assumable_roles.split(' ')
+	end
+	if(configs[:assumable_roles].length == 0)
+		configs.delete(:assumable_roles)
+	end
+
+	puts
 	if(server_users.sudo_group)
 		default = server_users.sudo_group
 	else

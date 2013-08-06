@@ -19,17 +19,19 @@ module ZepplenAWS
 			def initialize()
 				@object = ::AWS::EC2.new()
 				@objects = []
-				@objects << @object
-				if(Env.options.has_key?(:assume_roles))
+				@objects = nil
+			end
+
+			def all()
+				if(!@objects)
+					@objects = []
+					@objects << @object
 					sts = AWS::STS.new()
-					Env.options[:assume_roles].each do |arn|
+					ServerUsers.new.assumable_roles.each do |arn|
 						credentials = sts.assume_role(:role_arn => arn, :role_session_name => 'zepplen_aws')
 						@objects << ::AWS::EC2.new(credentials[:credentials])
 					end
 				end
-			end
-
-			def all()
 				return @objects
 			end
 

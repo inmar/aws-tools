@@ -45,6 +45,7 @@ module ZepplenAWS
 			end
 			@local_user_data = {}
 
+			Env[:dynamo_table] = @dynamo_table
 			@metadata = @table.items['METADATA', '__metadata__']
 		end
 
@@ -78,6 +79,14 @@ module ZepplenAWS
 		def user_file_bucket=(s3_path)
 			update_metadata(:user_file_bucket => s3_path)
 			return nil
+		end
+
+		def assumable_roles()
+			return @metadata.attributes[:assumable_roles].to_a
+		end
+
+		def assumable_roles=(roles)
+			update_metadata(:assumable_roles => roles)
 		end
 
 		# Max Key Age
@@ -200,7 +209,7 @@ module ZepplenAWS
 		#
 		# @param [Hash] Parameter values to set
 		def configure(config)
-			valid_configs = [:next_uid, :max_key_age, :tags, :sudo_group]
+			valid_configs = [:next_uid, :max_key_age, :tags, :sudo_group, :assumable_roles]
 			to_use_config = config.select{|k,v| valid_configs.include?(k)}
 			@metadata.attributes.update do |item_data|
 				item_data.set(to_use_config)
