@@ -32,6 +32,11 @@ OptionParser.new do |opts|
 		options[:local_users] = file
 	end
 
+	options[:splay] = nil
+	opts.on('--splay SECONDS', Integer, 'Number of seconds to splay running the script') do |splay|
+		options[:splay] = splay
+	end
+
 end.parse!
 
 #TODO: Add checks to validate the parameters
@@ -42,6 +47,10 @@ end
 
 if(ZepplenAWS::Env[:local_users] == nil)
 	ZepplenAWS::Env[:local_users] = '/etc/zepplen_aws/local_users.yaml'
+end
+
+if(options[:splay])
+	sleep(rand(options[:splay]))
 end
 
 server_users = ZepplenAWS::ServerLocalUsers.new()

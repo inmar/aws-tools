@@ -98,23 +98,53 @@ module ZepplenAWS
 			return bucket.objects[@user_data['files'][file_name]['s3_path']].read()
 		end
 
-		def get_accessable_instances()
-			ec2 = AWS::EC2.new()
-			::AWS.memoize do
-				ec2.all.each do |e|
-					e.instances.each do |instance|
-						if(has_access?(instance.tags))
-							puts "Access".green
-							puts instance.id
-							puts instance.tags['Name']
-						else
-							puts "No Access".yellow
+		# Retrieve list of instances user has access
+		#
+		# To save time, the second paramater can be passed, which will prevent re-querying
+		# ec2 for the instance information. This information can be aquired by calling
+		#	ZepplenAWS::ServerUsers::get_all_instance_tags
+		#
+		# @param [Array] Limit access check to a subet of instance tags
+		#	@param [Hash] Cached data provided by ZepplenAWS::ServerUsers::get_all_instance_tags
+		# @return [Hash] List of instances user has access to
+		def get_accessable_instances(limit_tags=nil, data = nil)
+			accessable = {}
+			user_tags = access_tags.keys
+			continue_check = false
+			if(!limit_tags)
+				limit_tags = @server_users.tags
+			end
+			user_tags.each do |user_tag|
+				if(limit_tags.include?(user_tag))
+					continue_check = true
+				end
+			end
+			if(!continue_check)
+				return {}
+			end
+			if(!data)
+				data = @server_users.get_all_instance_tags(limit_tags)
+			end
+			data.each_pair do |instance_id, tags|
+				if(limit_tags)
+					to_check_tags = tags.select{|k,v| limit_tags.include?(k)}
+					instance_data = has_access?(to_check_tags)
+					if(instance_data)
+						unless(accessable.has_key?(instance_id) && accessable[instance.id][:access_data]['sudo'])
+							accessable[instance_id] = {}
+							accessable[instance_id][:tags] = tags
+							accessable[instance_id][:access_data] = instance_data
 						end
 					end
 				end
 			end
+			return accessable
 		end
 
+		# Check if user has access based on provided tags
+		#
+		# @param [Hash] Tags to compare against user's rights
+		# @returns [Boolean]
 		def has_access?(tags)
 			tags.each_pair do |instance_tag, instance_value|
 				if(access_tags.has_key?(instance_tag))
@@ -321,7 +351,12 @@ module ZepplenAWS
 			if(!@user_data.has_key?(tag_key_name))
 				@user_data[tag_key_name] = {}
 			end
-			value_data = {'sudo' => sudo != nil}
+			if(sudo)
+				sudo = true
+			else
+				sudo = false
+			end
+			value_data = {'sudo' => sudo}
 			if(@user_data[tag_key_name][tag_value] != value_data)
 				@user_data[tag_key_name][tag_value] = value_data
 				@dirty = true

@@ -81,10 +81,16 @@ module ZepplenAWS
 			return nil
 		end
 
+		# Assumable Roles
+		#
+		# @return [Array] List of AWS ARNs that can be assumed by the provided keys.
 		def assumable_roles()
 			return @metadata.attributes[:assumable_roles].to_a
 		end
 
+		# Set Assumable Roles
+		#
+		# @param [Array] Aws ARNs of roles that can be assumed by the provided keys.
 		def assumable_roles=(roles)
 			update_metadata(:assumable_roles => roles)
 		end
@@ -239,6 +245,35 @@ module ZepplenAWS
 				users[user_row.attributes[:user_name]] = ServerUser.new(user_row.attributes[:user_name], @dynamo_table, user_row, @metadata, self)
 			end
 			return users
+		end
+
+		# Fetch Tags from all Instances
+		#
+		# This is a utility function to fetch all the Tags accross all assumable AWS accounts.
+		# This function should fetch the tags faster than iterating accross all the instances.
+		# Note, this function will ALWAYS return the name tag.
+		#
+		# @param [Array] List of tags to limit search to.
+		# @return [Hash]
+		def get_all_instance_tags(limit_tags=nil)
+			ec2 = AWS::EC2.new()
+			if(!limit_tags)
+				limit_tags = @server_users.tags
+			end
+			data = {}
+			::AWS.memoize do
+				ec2.all.each do |e|
+					filter_tags = limit_tags.dup
+					filter_tags << 'Name'
+					e.tags.filter('resource-type', 'instance').filter('key', filter_tags).each do |tag|
+						if(!data.has_key?(tag.resource.id))
+							data[tag.resource.id] = {}
+						end
+						data[tag.resource.id][tag.key] = tag.value
+					end
+				end
+			end
+			return data
 		end
 
 		private
